@@ -1,0 +1,14 @@
+name: langchain
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      # Keep pip deps here to make the env reproducible across Linux/macOS/WSL.
+      - langchain>=0.1.0
+      - langchain-core>=0.1.0
+      - langchain-openai>=0.1.0
+      - langgraph>=0.0.30
+      - python-dotenv>=1.0.0
+      - prompt_toolkit>=3.0.0

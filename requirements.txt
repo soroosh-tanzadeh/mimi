@@ -1,0 +1,6 @@
+langchain
+langchain-openai
+langchain-core
+langgraph
+prompt_toolkit
+python-dotenv
