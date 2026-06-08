@@ -22,6 +22,7 @@ def main():
     try:
         prompt = config_manager.get("agent.prompt", "User> ")
         model = config_manager.get("model.name", "Not configured")
+        sessions_dir = config_manager.get("agent.session_dir")
         
         print(f"\n🚀 Starting with:")
         print(f"  • Model: {model}")
@@ -29,7 +30,7 @@ def main():
         
         # Start agent
         signal.signal(signal.SIGINT, handler)
-        agent = Agent(prompt)
+        agent = Agent(prompt, sessions_dir)
         agent.run()
             
     except Exception as e:
