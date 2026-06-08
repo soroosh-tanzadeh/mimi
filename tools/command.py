@@ -13,7 +13,8 @@ import typer
 def run_command(command: str) -> str:
     print(f"`{command}`")
     
-    planAccepted = typer.confirm("Mimi wants to execute the command above, do accept the execution?")
-    if planAccepted:
-        return "User Reject command execution"
+    accepted = typer.confirm("Mimi wants to execute the command above, do accept the execution?")
+    if not accepted:
+        return "User rejected command execution"
+    
     return os.popen(f"{command}").read()
