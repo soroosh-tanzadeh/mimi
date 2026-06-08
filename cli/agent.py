@@ -1,113 +1,172 @@
 import os
-import sys
+from rich import print
+
+from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
+
 from dotenv import load_dotenv
-
-#######################################################
-from prompt_toolkit import PromptSession
-from prompt_toolkit.styles import Style
-from utils.intro import showIntro
-from cli.spinner import Spinner
+from prompt_toolkit import PromptSession, print_formatted_text, HTML
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit import print_formatted_text, HTML, ANSI
 
-#######################################################
-
-############## Agent ##############
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-from langchain.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
+from langchain.messages import HumanMessage, AIMessage, ToolMessage
 
-######################################
-
-####### Tools ########
-from tools import git_tool, read_file, list_files, write_to_file
-
-#####################
+from utils.intro import showIntro
+from cli.spinner import Spinner
+from cli.checkpointer import setup_check_pointer
+from utils.logger import logger
+from tools import (
+    git_tool,
+    read_file,
+    list_files,
+    write_to_file,
+    internet_search,
+    fetch_url_content,
+    show_plan
+)
 
 load_dotenv()
 
 
 class Agent:
     def __init__(self, prompt):
-        self.promptSession = PromptSession()
+        self.prompt_session = PromptSession()
         self.prompt = prompt
         self.instruction = os.environ.get("INSTRUCTION", "You are a helpful assistant.")
+        # Spinner kept for potential future use
         self.spinner = Spinner(message="MiMi is working...")
 
+        # Session management (reserved for future use)
+        self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.session_dir = Path("sessions")
+        self.session_dir.mkdir(exist_ok=True)
+
+        # Initialize model
         self.model = ChatOpenAI(
-            model=os.environ.get("MODEL", "gpt-3.5-turbo"),
+            model=os.environ.get("MODEL", "google/gemma-3-27b-it"),
             base_url=os.environ.get("OPENAI_API_BASE_URL"),
             api_key=os.environ.get("OPENAI_API_KEY"),
         )
 
         self._load_system_prompt()
 
-        self.tools = [git_tool, read_file, list_files, write_to_file]
+        self.tools = [
+            git_tool,
+            read_file,
+            list_files,
+            write_to_file,
+            internet_search,
+            fetch_url_content,
+            show_plan
+        ]
+        
+        self.spinner = Spinner(message="Mimi is thinking")
 
+        self.checkpointer = setup_check_pointer("./database/checkpointer.db")
+
+        # Create agent using the non-deprecated import
         self.agent = create_agent(
             model=self.model,
             tools=self.tools,
-            system_prompt=self.system_prompt,
-            debug=False,
+            system_prompt=self.system_prompt,  # parameter name may vary; adjust if needed
+            checkpointer=self.checkpointer,
         )
 
-        self.conversation: list = []  # will hold HumanMessage/AIMessage
+        # Generate a clean thread ID
+        self.thread_id = str(uuid4())  # fixed from uuid4().bytes
 
     def _load_system_prompt(self):
-        # If instruction is a file path, load from file
-        if self.instruction and os.path.exists(self.instruction):
+        """Load system prompt from file or use the instruction string directly."""
+        candidate = self.instruction
+        if candidate and os.path.isfile(candidate):
             try:
-                with open(self.instruction, "r") as f:
+                with open(candidate, "r", encoding="utf-8") as f:
                     self.system_prompt = f.read()
-            except Exception:
-                self.system_prompt = self.instruction
-        else:
-            self.system_prompt = self.instruction
+                logger.info(f"Loaded system prompt from {candidate}")
+                return
+            except Exception as e:
+                logger.error(f"Error loading system prompt from file: {e}")
+        # Fallback: treat instruction as the prompt string
+        self.system_prompt = candidate
+        logger.info("Using system prompt from environment/default")
 
     def run(self):
+        """Main agent execution loop."""
         showIntro()
+        logger.info("Agent started")
+        streaming_active = False
+
         while True:
             try:
-                user_input = self.promptSession.prompt(
-                    self.prompt, auto_suggest=AutoSuggestFromHistory()
+                user_input = self.prompt_session.prompt(
+                    self.prompt,
+                    auto_suggest=AutoSuggestFromHistory(),
                 )
 
-                if user_input.lower() in ("quit", "exit"):
+                if user_input.lower().strip() in ("quit", "exit"):
+                    logger.info("User requested exit")
                     break
-                if user_input.lower() == "clear":
-                    print("\033[H\033[J")
-                    self.conversation = []  # optional: clear memory too
+
+                if user_input.lower().strip() == "threads":
+                    if hasattr(self.checkpointer, "list"):
+                        print(self.checkpointer.list())
+                    else:
+                        print("Checkpointer does not support listing threads.")
                     continue
-                if not user_input:
+
+                if not user_input.strip():
                     continue
 
-                self.conversation.append(HumanMessage(content=user_input))
+                logger.info(f"User input: {user_input}")
 
-                final_ai = None
-                with self.spinner:
-                    for event in self.agent.stream(
-                        {"messages": self.conversation},
-                        stream_mode="values",
-                    ):
-                        # show the latest message
-                        eventMessage = event["messages"][-1]
-                        if isinstance(eventMessage, ToolMessage):
-                            print_formatted_text(
-                                HTML(
-                                    f"\n<ansiblue>MiMi is executing {eventMessage.name}</ansiblue>"
-                                )
-                            )
-
-                        final_ai = eventMessage
-
-                # 3) persist assistant message into history
-                if final_ai is not None and isinstance(final_ai, AIMessage):
-                    self.conversation.append(final_ai)
-                    print_formatted_text(
-                        HTML(f"\n<ansiblue>MiMi> </ansiblue>"), ANSI(final_ai.content)
+                # Stream using 'messages' mode for token-by-token output
+                self.spinner.start()
+                try:
+                    stream = self.agent.stream(
+                        {"messages": [HumanMessage(content=user_input)]},
+                        {"configurable": {"thread_id": self.thread_id}},
+                        stream_mode="messages",
                     )
 
-            except KeyboardInterrupt:
-                print("Use 'quit' command to exit.")
+                    first_chunk = False
+                    current_response = ""
+                    try:
+                        for chunk, metadata in stream:
+                            if isinstance(chunk, AIMessage) and chunk.content:
+                                if not first_chunk:
+                                    self.spinner.stop()          # stop spinner as soon as we get first content
+                                content = chunk.content
+                                print(content, end="", flush=True)
+                                current_response += content
+                                first_chunk = True
+                            elif isinstance(chunk, ToolMessage):
+                                if current_response:
+                                    print()                      # finish any pending output
+                                print(f"\n🔧 MiMi is executing {chunk.name}...")
+                                current_response = ""
+
+                        if current_response:
+                            print()                              # final newline after response
+
+                    except KeyboardInterrupt:
+                        print("\n⏹️  Response interrupted. Returning to prompt.")
+                    except Exception as e:
+                        logger.error(f"Streaming error: {e}", exc_info=True)
+                        print_formatted_text(HTML(f"<ansired>Streaming error: {str(e)}</ansired>"))
+                    finally:
+                        self.spinner.stop()
+                        
+                except Exception as e:
+                    logger.error(f"Stream setup error: {e}", exc_info=True)
+                    print_formatted_text(HTML(f"<ansired>Error: {str(e)}</ansired>"))
+                    self.spinner.stop()
             except Exception as e:
+                logger.error(f"Error in agent execution: {str(e)}", exc_info=True)
                 print_formatted_text(HTML(f"<ansired>Error: {str(e)}</ansired>"))
+
+
+if __name__ == "__main__":
+    agent = Agent(prompt=">>> ")
+    agent.run()

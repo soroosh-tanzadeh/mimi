@@ -26,6 +26,7 @@ class Spinner:
             sys.stdout.flush()
             time.sleep(0.1)
         sys.stdout.write("\r" + " " * (len(self.message) + 2) + "\r")
+        sys.stdout.write("\033[2K\r") 
         sys.stdout.flush()
 
     def start(self):

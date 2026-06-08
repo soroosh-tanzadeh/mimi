@@ -7,49 +7,105 @@
     </figure>
 </center>
 
-Meet **Mimi**, your adorable and intelligent coding companion! Mimi is an AI-powered code assistant designed to help you with programming tasks.
-
-## Requirements
-
-- Python 3.x
-- Conda (recommended)
-- python-dotenv (installed via environment)
-
-Install dependencies using:
+## How to start development
 
 ```bash
-# Recommended: create the conda env and activate it
-conda env create -f environment.yml
-conda activate langchain
+# Clone the repository
+git clone <repository-url>
+cd mimi
 
-# Alternative (pip-only):
-# pip install -r requirements.txt
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ## Configuration
 
-Create a `.env` file based on the provided example. The following environment variables are required:
+MiMi can be configured using:
+1. Environment variables (`.env` file)
+2. YAML configuration file (`config.yaml`)
+3. JSON configuration file (`config.json`)
 
-- `OPENAI_API_KEY`: Your OpenAI API key.
-- `OPENAI_API_BASE_URL`: Base URL for the OpenAI API endpoint.
-- `MODEL`: The model to use (default: gpt-3.5-turbo).
-- `INSTRUCTION`: Path to the system prompt file (default: system-prompts/code-assistant-prompt-planner.md) OR an inline instruction string.
+### Example .env file:
+```bash
+MODEL="qwen/qwen3-coder"
+INSTRUCTION="system-prompts/code-assistant-prompt-planner.md"
+OPENAI_API_KEY="your-api-key-here"
+OPENAI_API_BASE_URL="BASEURL_HERE"
+```
+
+### Example config.yaml file:
+```yaml
+model:
+  name: "qwen/qwen3-coder"
+  api_key: "your-api-key-here"
+  base_url: "BASE_URL_HERE"
+
+agent:
+  instruction: "system-prompts/code-assistant-prompt-planner.md"
+  session_dir: "sessions"
+  log_level: "INFO"
+  log_file: "logs/mimi.log"
+  prompt: "User> "
+```
 
 ## Usage
 
-Run Mimi using:
-
 ```bash
-conda activate langchain
+# Run the agent
 python main.py
+
+# Run tests
+python tests/run_tests.py
 ```
 
-Once started, you can interact with Mimi via a chat interface. Type `quit` or `exit` to say goodbye!
+## Features
 
-## Model
+- **Persistent Sessions**: Conversations are saved and can be resumed
+- **Tool Tracking**: All tool usage is logged for analysis
+- **Enhanced Logging**: Detailed logs for debugging and monitoring
+- **Configuration Flexibility**: Multiple ways to configure the agent
+- **Robust Error Handling**: Graceful handling of errors and exceptions
+- **Comprehensive Testing**: Thorough test coverage for reliability
 
-Mimi uses the **Qwen3-Coder-480b-A35B-Instruct** model hosted via Arvan Cloud AI Gateway by default.
+## Directory Structure
 
-## License
+```
+mimi/
+├── cli/                 # Command line interface components
+├── config/              # Configuration management
+├── logs/                # Log files
+├── sessions/            # Session data
+├── system-prompts/      # System prompt templates
+├── tests/               # Test suite
+├── tools/               # Tool implementations
+├── utils/               # Utility functions
+├── main.py             # Entry point
+├── config.yaml         # Default configuration
+├── requirements.txt    # Python dependencies
+└── README.md           # This file
+```
 
-This project is licensed under the MIT License.
+## Testing
+
+Run the test suite with:
+
+```bash
+python tests/run_tests.py
+```
+
+The test suite includes:
+- Configuration manager tests
+- Agent functionality tests
+- File tool tests
+- Integration tests
+
+## Logging
+
+Logs are saved to `logs/mimi.log` by default. The log level can be configured in the configuration file.
+
+## Sessions
+
+Conversation sessions are automatically saved to the `sessions/` directory with timestamps. Each session includes:
+- Complete conversation history
+- Tool usage records
+- Session metadata
