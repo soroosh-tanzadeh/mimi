@@ -29,3 +29,22 @@ def show_plan(plan_markdown: str) -> str:
         return "Plan Accepted, continue"
     
     return "Plan rejected, ask for clarifications"
+
+
+@tool(
+    name_or_callable="show_markdown",
+    description="Shows a markdown to the user.",
+)
+def show_markdown(markdown_str: str):
+    """
+        Shows the plan markdown to the user.
+        
+    Args:
+        markdown_str (str): The markdown code
+
+    Returns: Nothing
+        
+    """
+    
+    md = Markdown(markdown_str)
+    console.print(md)

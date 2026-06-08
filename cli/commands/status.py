@@ -14,16 +14,27 @@ class StatusCommand(CommandHandler):
     
     @property
     def description(self) -> str:
-        return "Show agent status"
+        return "Show current agent status"
     
     def execute(self, agent, args: str) -> bool:
         """Execute the status command."""
-        print(f"\n📊 Agent Status:")
-        print(f"  • Session ID: {agent.session_id}")
-        if agent.session_loaded_from_file:
-            print(f"  • Loaded from: {agent.loaded_session_id}")
-        print(f"  • Thread ID: {agent.thread_id}")
-        print(f"  • Messages in session: {len(agent.conversation)}")
-        print(f"  • Tools used: {len(agent.tool_usage_history)}")
+        from config.config import get_config
+        
+        print("\n📊 Agent Status:")
+        print("=" * 40)
+        
+        # Model info
+        model_name = get_config("model.name", "Not configured")
+        print(f"  • Model: {model_name}")
+        
+        # Session info
+        session_info = agent.session_manager.get_session_info()
+        print(f"  • Session ID: {session_info['Current Session ID']}")
+        print(f"  • Thread ID: {session_info['Thread ID']}")
+        print(f"  • Messages: {session_info['Conversation Messages']}")
+        print(f"  • Tools Used: {session_info['Tool Usage Records']}")
+        
+        # Memory info
+        print(f"  • Session Directory: {session_info['Session Directory']}")
         
         return True

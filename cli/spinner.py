@@ -16,12 +16,12 @@ class Spinner:
 
         """
         self.message = message
-        self.running = False
+        self.stop_event = threading.Event()
         self.thread = None
         self.spinner = itertools.cycle(["-", "/", "|", "\\"])
 
     def spin(self):
-        while self.running:
+        while not self.stop_event.is_set():
             sys.stdout.write(f"\r{self.message} {next(self.spinner)}")
             sys.stdout.flush()
             time.sleep(0.1)
@@ -30,14 +30,14 @@ class Spinner:
         sys.stdout.flush()
 
     def start(self):
-        self.running = True
+        self.stop_event.clear()
         self.thread = threading.Thread(target=self.spin)
         self.thread.start()
 
     def stop(self):
-        self.running = False
-        if self.thread:
-            self.thread.join()
+        self.stop_event.set()
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=1.0)
 
     def __enter__(self):
         self.start()

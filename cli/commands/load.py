@@ -6,7 +6,7 @@ from . import CommandHandler
 
 
 class LoadCommand(CommandHandler):
-    """Handle the 'load <session_id>' command to load a session."""
+    """Handle the 'load' command to load a session."""
     
     @property
     def command_name(self) -> str:
@@ -14,20 +14,21 @@ class LoadCommand(CommandHandler):
     
     @property
     def description(self) -> str:
-        return "Load a session"
+        return "Load a session by ID"
     
     def execute(self, agent, args: str) -> bool:
         """Execute the load command."""
         if not args:
-            print("❌ Please specify a session ID to load.")
+            print("\n❌ Usage: load <session_id>")
+            print("   Example: load 20241215_143022")
             return True
         
-        success, message = agent._load_session(args)
+        session_id = args.strip()
+        success, message = agent.session_manager.load_session(session_id)
+        
         if success:
-            print(f"✅ {message}")
-            # Update session ID to the loaded one
-            agent.session_id = args
+            print(f"\n✅ {message}")
         else:
-            print(f"❌ {message}")
+            print(f"\n❌ {message}")
         
         return True

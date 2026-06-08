@@ -6,7 +6,7 @@ from . import CommandHandler
 
 
 class DeleteCommand(CommandHandler):
-    """Handle the 'delete <session_id>' command to delete a session."""
+    """Handle the 'delete' command to delete a session."""
     
     @property
     def command_name(self) -> str:
@@ -14,23 +14,21 @@ class DeleteCommand(CommandHandler):
     
     @property
     def description(self) -> str:
-        return "Delete a session (use with caution)"
+        return "Delete a session by ID"
     
     def execute(self, agent, args: str) -> bool:
         """Execute the delete command."""
         if not args:
-            print("❌ Please specify a session ID to delete.")
+            print("\n❌ Usage: delete <session_id>")
+            print("   Example: delete 20241215_143022")
             return True
         
-        # Confirm deletion
-        confirm = input(f"⚠️  Are you sure you want to delete session '{args}'? (yes/no): ")
-        if confirm.lower() == "yes":
-            success, message = agent._delete_session(args)
-            if success:
-                print(f"✅ {message}")
-            else:
-                print(f"❌ {message}")
+        session_id = args.strip()
+        success, message = agent.session_manager.delete_session(session_id)
+        
+        if success:
+            print(f"\n✅ {message}")
         else:
-            print("❌ Deletion cancelled.")
+            print(f"\n❌ {message}")
         
         return True

@@ -6,7 +6,7 @@ from . import CommandHandler
 
 
 class SessionInfoCommand(CommandHandler):
-    """Handle the 'session info' command to show current session information."""
+    """Handle the 'session info' command to show current session details."""
     
     @property
     def command_name(self) -> str:
@@ -14,19 +14,11 @@ class SessionInfoCommand(CommandHandler):
     
     @property
     def description(self) -> str:
-        return "Show current session information"
+        return "Show information about current session"
     
     def execute(self, agent, args: str) -> bool:
         """Execute the session info command."""
-        info = {
-            "Current Session ID": agent.session_id,
-            "Loaded From File": "Yes" if agent.session_loaded_from_file else "No",
-            "Loaded Session ID": agent.loaded_session_id if agent.loaded_session_id else "None",
-            "Conversation Messages": len(agent.conversation),
-            "Tool Usage Records": len(agent.tool_usage_history),
-            "Thread ID": agent.thread_id,
-            "Session Directory": str(agent.session_dir.resolve())
-        }
+        info = agent.session_manager.get_session_info()
         
         print("\n📋 Session Information:")
         print("=" * 40)

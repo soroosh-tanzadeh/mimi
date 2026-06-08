@@ -18,7 +18,7 @@ class SessionsCommand(CommandHandler):
     
     def execute(self, agent, args: str) -> bool:
         """Execute the sessions command."""
-        sessions = agent._list_available_sessions()
+        sessions = agent.session_manager.list_sessions()
         if not sessions:
             print("\n📁 No sessions found.")
             return True
@@ -36,7 +36,7 @@ class SessionsCommand(CommandHandler):
             size_kb = f"{session['size_bytes'] / 1024:.1f}KB"
             
             # Highlight current session
-            if session_id == agent.session_id:
+            if session_id == agent.session_manager.session_id:
                 session_id = f"▶ {session_id}"
             
             print(f"{session_id:<20} {timestamp:<25} {messages:<10} {tools:<10} {size_kb:<10}")

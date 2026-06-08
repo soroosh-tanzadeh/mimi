@@ -6,7 +6,7 @@ from . import CommandHandler
 
 
 class SwitchCommand(CommandHandler):
-    """Handle the 'switch <session_id>' command to switch to a different session."""
+    """Handle the 'switch' command to switch to a different session."""
     
     @property
     def command_name(self) -> str:
@@ -19,13 +19,16 @@ class SwitchCommand(CommandHandler):
     def execute(self, agent, args: str) -> bool:
         """Execute the switch command."""
         if not args:
-            print("❌ Please specify a session ID to switch to.")
+            print("\n❌ Usage: switch <session_id>")
+            print("   Example: switch 20241215_143022")
             return True
         
-        success, message = agent._switch_to_session(args)
+        session_id = args.strip()
+        success, message = agent.session_manager.switch_session(session_id, agent.session_manager.thread_id)
+        
         if success:
-            print(f"✅ {message}")
+            print(f"\n✅ {message}")
         else:
-            print(f"❌ {message}")
+            print(f"\n❌ {message}")
         
         return True

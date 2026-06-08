@@ -1,7 +1,27 @@
-langchain
-langchain-openai
-langchain-core
-langgraph
-prompt_toolkit
-python-dotenv
-pyyaml
+# Core dependencies
+langchain==0.3.0
+langchain-openai==0.2.0
+langchain-core==0.3.0
+langgraph==0.2.0
+langchain-community==0.3.0
+
+# CLI & UI
+prompt_toolkit==3.0.47
+python-dotenv==1.0.1
+rich==13.9.4
+typer==0.12.5
+
+# Configuration & Data
+pyyaml==6.0.2
+sqlite3  # Built-in
+
+# Web & Networking
+requests==2.32.3
+
+# Testing (optional)
+pytest==8.3.3
+
+# Development tools
+black==24.10.0
+flake8==7.1.1
+isort==5.13.2
